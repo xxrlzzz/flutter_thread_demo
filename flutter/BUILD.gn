@@ -1,0 +1,95 @@
+# Copyright 2013 The Flutter Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//flutter/common/config.gni")
+
+# import("//flutter/shell/platform/config.gni")
+# import("//flutter/shell/platform/glfw/config.gni")
+# import("//flutter/testing/testing.gni")
+
+# Whether to build the dartdevc sdk, libraries, and source files
+# required for the flutter web sdk.
+declare_args() {
+  # full_dart_sdk = false
+  # enable_unittests = false
+}
+
+config("config") {
+  include_dirs = [ ".." ]
+  if (is_win) {
+    if (current_cpu != "x86") {
+      cflags = [ "/WX" ]  # Treat warnings as errors.
+    }
+  }
+
+  if (is_debug) {
+    defines = [ "FLUTTER_ENABLE_DIFF_CONTEXT" ]
+  }
+}
+
+config("export_dynamic_symbols") {
+  if (is_linux) {
+    inputs = [ "//flutter/common/exported_symbols.sym" ]
+    ldflags = [ "-Wl,--dynamic-list=" + rebase_path(inputs[0], root_build_dir) ]
+  }
+}
+
+group("flutter") {
+  testonly = true
+
+  # Compile the engine.
+  public_deps = [
+    # "//flutter/shell/platform/embedder:flutter_engine",
+    # "//flutter/sky",
+  ]
+
+  # Flutter SDK artifacts should only be built when either doing host builds, or
+  # for cross-compiled desktop targets.
+  # build_engine_artifacts =
+  #     current_toolchain == host_toolchain || (is_linux && !is_chromeos)
+  build_engine_artifacts = false
+
+  # If enbaled, compile the SDK / snapshot.
+  public_deps += [
+    # "//flutter/lib/snapshot:generate_snapshot_bin",
+    # "//flutter/lib/snapshot:kernel_platform_files",
+  ]
+
+  if (build_engine_artifacts) {
+    public_deps += [
+      "//flutter/flutter_frontend_server:frontend_server",
+      "//third_party/dart:create_sdk",
+
+      # This must be listed explicitly for desktop cross-builds since
+      # //flutter/lib/snapshot:generate_snapshot_bin will only build
+      # gen_snapshot for the host and not the target.
+      "//third_party/dart/runtime/bin:gen_snapshot",
+    ]
+    # if (full_dart_sdk) {
+    #   public_deps += [ "//flutter/web_sdk" ]
+    # }
+  }
+
+  if (build_engine_artifacts) {
+    public_deps += [
+      "//flutter/shell/testing",
+      "//flutter/tools/const_finder",
+      "//flutter/tools/font-subset",
+    ]
+  }
+
+  # # Compile all benchmark targets if enabled.
+  # if (enable_unittests && !is_win) {
+  #   public_deps += [
+  #     "//flutter/fml:fml_benchmarks",
+  #   ]
+  # }
+
+  # # Compile all unittests targets if enabled.
+  # if (enable_unittests) {
+  #   public_deps += [
+  #     "//flutter/fml:fml_unittests",
+  #   ]
+  # }
+}

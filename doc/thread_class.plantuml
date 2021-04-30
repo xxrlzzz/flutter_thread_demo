@@ -1,0 +1,92 @@
+@startuml thread
+class Thread {
+- unique_ptr<std::thread>  thread_
+- RefPtr<TaskRunner> task_runner_
+}
+
+class MessageLoop {
+- RefPtr<MessageLoopImpl> loop_
+- RefPtr<fml::TaskRunner> task_runner_
++ {static} MessageLoop& GetCurrent()
++ Run()
++ Terminate()
++ AddTaskObserver(intptr_t key, const closure& callback)
++ RemoveTaskObserver(intptr_t key)
++ RefPtr<fml::TaskRunner> GetTaskRunner() const;
+}
+
+class TaskRunner {
+- RefPtr<MessageLoopImpl> loop_
++ PostTask(const closure& task)
++ PostTaskForTime(const closure& task, TimePoint target_time)
++ PostDelayedTask(const closure& task, TimeDelta delay)
++ TaskQueueId GetTaskQueueId()
+}
+
+
+abstract MessageLoopImpl {
+- RefPtr<MessageLoopTaskQueues> task_queue_
+- TaskQueueId queue_id_
++ PostTask(const closure& task, TimePoint target_time)
++ AddTaskObserver(intptr_t key, const closure& callback)
++ RemoveTaskObserver(intptr_t key)
++ TaskQueueId GetTaskQueueId()
++ {abstract} Run()
++ {abstract} Terminate()
+}
+
+abstract Wakeable {
+- {abstract} WeakUp(TimePoint time_point)
+}
+
+class MessageLoopTaskQueues {
++ {static} RefPtr<MessageLoopTaskQueues> GetInstance()
++ TaskQueueId CreateTaskQueue()
++ Dispose(TaskQueueId queue_id)
++ DisposeTasks(TaskQueueId queue_id)
+
+- map<TaskQueueId, unique_ptr<TaskQueueEntry>> queue_entries_
+}
+
+class MessageLoopLinux {
+
+}
+
+class MessageLoopDarwin {
+
+}
+
+class MessageLoopWin {
+
+}
+
+class TaskQueueEntry {
+- Wakeable* wakeable_
+- map<intptr_t, closure> task_observers_
+- DelayedTaskQueue delayed_tasks_
+}
+
+class DelayedTask {
++ closure task_;
++ TimePoint target_time_;
+}
+
+Thread o-- TaskRunner 
+TaskRunner o-- MessageLoopImpl
+Wakeable <|-- MessageLoopImpl
+
+MessageLoopImpl::task_queue_ *-- MessageLoopTaskQueues 
+
+MessageLoopImpl <|-- MessageLoopLinux
+MessageLoopImpl <|-- MessageLoopDarwin
+MessageLoopImpl <|-- MessageLoopWin
+
+MessageLoop o-- MessageLoopImpl
+MessageLoop o-- TaskRunner
+
+MessageLoopTaskQueues::queue_entries_ o-- TaskQueueEntry
+TaskQueueEntry::delayed_tasks_ o-- DelayedTask
+
+TaskQueueEntry::wakeable_ -- Wakeable
+
+@enduml

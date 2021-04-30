@@ -1,0 +1,27 @@
+@startuml
+
+participant MessageLoop
+participant MessageLoopLinux as LoopLinux
+
+MessageLoop -> LoopLinux : Ctor
+
+LoopLinux -> LoopLinux : Init epollfd, timerfd
+
+note right of LoopLinux
+AddOrRemoveTimerSource()
+  epollctl(add, timerfd)
+end note
+
+MessageLoop -> TaskRunner : Ctor(MessageLoopImpl)
+
+MessageLoop -> LoopLinux : Run
+
+group while(isRunning)
+ LoopLinux -> LoopLinux : epoll_wait, OnEventFired()
+end
+
+TaskQueueEntry -> LoopLinux : WeakUp(invoke timerfd at given time_point)
+
+MessageLoop -> LoopLinux : Terminate
+
+@enduml
